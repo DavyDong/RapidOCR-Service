@@ -160,3 +160,10 @@ long1.jpg
 
 .DS_Store
 *.npy
+
+# Local web service process metadata and validation output
+.runtime/
+# Deployment-specific configuration and local secrets
+manifest.local.yml
+.env.*
+!.env.example

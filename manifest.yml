@@ -1,0 +1,19 @@
+---
+applications:
+  - name: rapidocr
+    memory: 2G
+    disk_quota: 2G
+    instances: 1
+    stack: cflinuxfs5
+    buildpacks:
+      - python_buildpack
+    routes:
+      - route: rapidocr.cfapps.eu10-004.hana.ondemand.com
+    health-check-type: http
+    health-check-http-endpoint: /health
+    timeout: 180
+    env:
+      PYTHONUNBUFFERED: "1"
+      OCR_THREADS: "2"
+      OMP_NUM_THREADS: "2"
+      OPENBLAS_NUM_THREADS: "2"

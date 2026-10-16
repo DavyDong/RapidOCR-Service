@@ -1,0 +1,20 @@
+---
+# Copy to manifest.local.yml for a new deployment in your own CF org/space.
+# Keep ACCESS_TOKEN in the BTP application's environment, never in this file.
+applications:
+  - name: rapidocr
+    memory: 2G
+    disk_quota: 2G
+    instances: 1
+    stack: cflinuxfs5
+    buildpacks:
+      - python_buildpack
+    random-route: true
+    health-check-type: http
+    health-check-http-endpoint: /health
+    timeout: 180
+    env:
+      PYTHONUNBUFFERED: "1"
+      OCR_THREADS: "2"
+      OMP_NUM_THREADS: "2"
+      OPENBLAS_NUM_THREADS: "2"

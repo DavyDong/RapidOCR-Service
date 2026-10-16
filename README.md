@@ -1,3 +1,144 @@
+# RapidOCR Image + PDF Service
+
+[简体中文](README-CN.md) | English
+
+[Source repository](https://github.com/DavyDong/RapidOCR-Service) · [AGPL-3.0-only](LICENSE)
+
+A self-hosted web application and FastAPI service for extracting text from images
+and PDFs, with Bearer-token authentication and SAP BTP Cloud Foundry deployment
+configuration. Runs on CPU with one shared RapidOCR engine.
+
+This integration extends [RapidAI/RapidOCR](https://github.com/RapidAI/RapidOCR).
+The implementation is **RapidOCR + PyMuPDF + FastAPI**.
+[RapidOCRPDF](https://github.com/RapidAI/RapidOCRPDF) provides the design reference
+for native PDF extraction versus page OCR; its package is not installed and the
+two upstream repositories have not been merged. The result is one application
+and one API contract for both file types. This is not an official RapidAI or SAP release.
+
+## Features
+
+- Images: PNG, JPEG, WebP, BMP and single-frame TIFF; Chinese and English OCR.
+- PDFs: native text extraction, scanned/mixed pages, page numbers and text boxes.
+- Web UI: upload or try a sample, switch PDF pages, copy text and download JSON.
+- API: identical `/api/ocr` and `/ocr/invoice` endpoints; optional `force_ocr=true`.
+- Authentication: `Authorization: Bearer <ACCESS_TOKEN>` checked before upload
+  parsing; missing server configuration rejects OCR requests.
+- BTP: Python buildpack, `$PORT`, `/health`, dependency lock and model warm-up;
+  no database or GPU required.
+
+`/ocr/invoice` extracts text and positions; it does not infer structured invoice
+fields such as supplier, tax amount or line items.
+
+```mermaid
+flowchart LR
+    A[Web UI or API client] --> B[Bearer authentication]
+    B --> C{File content}
+    C -->|Image| D[Shared RapidOCR CPU engine]
+    C -->|PDF| E[PyMuPDF page inspection]
+    E -->|Native text page| F[Text and coordinates]
+    E -->|Scanned or mixed page| G[Render one page]
+    G --> D
+    D --> H[Unified JSON and per-page results]
+    F --> H
+```
+
+## Quick start
+
+Use Python **3.12** and [uv](https://docs.astral.sh/uv/). Obtain this integration
+repository and run from its root. Cloning only the original RapidAI repository
+does not include this integration's `deployment/` files. Initial dependency and
+model downloads need internet access; warmed-up inference uses local models.
+
+```bash
+git clone https://github.com/DavyDong/RapidOCR-Service.git
+cd RapidOCR-Service
+```
+
+Windows / PowerShell:
+
+```powershell
+uv venv --python 3.12 .venv
+uv pip install --python .venv\Scripts\python.exe -r requirements.txt
+.\.venv\Scripts\python.exe -m deployment.engine
+$tokenInput = Read-Host 'Choose ACCESS_TOKEN' -AsSecureString
+$env:ACCESS_TOKEN = [System.Net.NetworkCredential]::new('', $tokenInput).Password
+.\scripts\restart-local.ps1
+```
+
+Open [the local UI](http://127.0.0.1:8765) or [API docs](http://127.0.0.1:8765/docs).
+Use the same token in the page or the docs' **Authorize** dialog. The UI keeps it
+only in the current page. The application does not automatically load `.env` files.
+See the [operations guide](deployment/README.md#local-bash) for Linux/macOS startup.
+
+```powershell
+$baseUrl = 'http://127.0.0.1:8765' # Replace with your own deployed URL when needed.
+curl.exe -H "Authorization: Bearer $env:ACCESS_TOKEN" -F "file=@deployment/sample.jpg" "$baseUrl/api/ocr"
+curl.exe -H "Authorization: Bearer $env:ACCESS_TOKEN" -F "file=@deployment/sample.pdf" "$baseUrl/ocr/invoice"
+```
+
+Bash clients use `$ACCESS_TOKEN` instead of `$env:ACCESS_TOKEN`. Responses contain
+`type`, `pages`, combined `text` and `lines`, `page_results` and `elapsed_seconds`.
+Lines have 1-based page numbers; native text confidence is `null`. Image boxes use
+pixels; PDF boxes use points (1/72 inch) on the rotated visible page. Full fields,
+error codes and examples are in the [API guide](deployment/README.md#api).
+
+## Deploy your own SAP BTP instance
+
+Verified configuration: Cloud Foundry, Python 3.12, `python_buildpack`, `cflinuxfs5`,
+1 instance, 2 GB memory and 2 GB disk. Users need their own org/space, quota and token.
+
+1. Install dependencies and warm up/download the models as above.
+2. Copy [manifest.example.yml](manifest.example.yml) to `manifest.local.yml` and
+   choose your application name. A random route avoids hostname conflicts.
+3. Follow the [first deployment instructions](deployment/README.md#btp-first-deployment):
+   log in, upload the new app with `--no-start`, configure `ACCESS_TOKEN` in BTP,
+   and start the app.
+
+The existing [manifest.yml](manifest.yml) targets the maintainer's deployed route;
+use the generic example for your own instance. The redeployment script supports
+`-AppName` and `-Manifest` and redacts the token from CF manifest-diff output.
+Local configuration, models and runtime logs are excluded from Git.
+
+## Limits and validation
+
+- File size: 10 MiB; images: 24 million pixels; PDF: 20 pages, including blank pages.
+- PDF rendering: target 200 DPI, at most 4 million pixels and 3000 pixels on the longest side.
+- PDF budget: checked before/after each page at 45 seconds; an active OCR/render
+  call cannot be interrupted, so this is not a hard request timeout.
+- Decrypt password-protected PDFs first; split multi-frame images or convert to PDF.
+- One extraction at a time per instance; concurrent extraction returns 429.
+- Uploads are not retained; multipart parsing may use temporary files closed after the request.
+
+The 2026-10-15 implementation passed **38 tests**, local/BTP image and two-page PDF
+smoke checks, and browser page-switch/JSON-download checks. This is not a guarantee
+of OCR accuracy on arbitrary layouts. See [verification commands](deployment/README.md#verification).
+
+## Source and licensing
+
+The added service lives in `deployment/`; `scripts/` contains restart, deployment
+and smoke-check helpers. OCR source is in `python/rapidocr/`. `Procfile`,
+`runtime.txt`, the manifests and `.cfignore` configure Cloud Foundry deployment.
+
+The added integration and combined service are released under
+**[AGPL-3.0-only](LICENSE)**. Upstream RapidOCR retains its
+[Apache-2.0 license](LICENSES/Apache-2.0.txt) and [model notices](python/MODEL_LICENSES.md).
+**PyMuPDF uses AGPLv3 or an Artifex commercial license**. Source for this service is
+available in [this repository](https://github.com/DavyDong/RapidOCR-Service), also
+linked from the web footer and API documentation. Operators of modified versions
+must provide corresponding source to service users as required by the AGPL.
+
+Read [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for provenance and official
+license references. Preserve upstream notices and exclude credentials, local
+configuration, logs and real user documents from your own releases. The upstream
+automation files are retained for provenance; GitHub Actions is disabled in this
+repository until workflows are adapted for this service.
+
+<details>
+<summary>Original RapidOCR library README (upstream scope and attribution)</summary>
+
+The following describes the upstream OCR library and its platforms, not the
+added web service or the complete PDF runtime's license.
+
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://github.com/RapidAI/RapidOCR/releases/download/v1.1.0/Logov2_black.png"  width="60%" height="60%">
@@ -208,7 +349,7 @@ License
 
 RapidOCR source code and engineering components are copyright
 RapidOCR Authors and licensed under the Apache License, Version 2.0.
-See [LICENSE](./LICENSE).
+See [LICENSE](./LICENSES/Apache-2.0.txt).
 
 ### Models
 
@@ -223,4 +364,6 @@ license terms.
 
 RapidOCR does not claim ownership of the upstream model weights.
 Model-specific sources, hashes, attribution, and conversion information
-are documented in [MODEL_LICENSES.md](./MODEL_LICENSES.md).
+are documented in [MODEL_LICENSES.md](./python/MODEL_LICENSES.md).
+
+</details>

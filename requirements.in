@@ -1,0 +1,6 @@
+-r python/requirements.txt
+onnxruntime
+fastapi
+uvicorn
+python-multipart
+pymupdf>=1.26,<2
