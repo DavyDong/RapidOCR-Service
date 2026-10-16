@@ -130,8 +130,9 @@ must provide corresponding source to service users as required by the AGPL.
 Read [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for provenance and official
 license references. Preserve upstream notices and exclude credentials, local
 configuration, logs and real user documents from your own releases. The upstream
-automation files are retained for provenance; GitHub Actions is disabled in this
-repository until workflows are adapted for this service.
+automation files are retained as documentation in `docs/upstream-workflows/`;
+they are not installed as executable workflows. GitHub Actions is disabled until
+workflows are adapted for this service.
 
 <details>
 <summary>Original RapidOCR library README (upstream scope and attribution)</summary>

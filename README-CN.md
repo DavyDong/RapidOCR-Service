@@ -126,7 +126,7 @@ Bash 使用 `$ACCESS_TOKEN`，PowerShell 使用 `$env:ACCESS_TOKEN`。返回 `ty
 
 **新增集成代码与组合服务采用 [AGPL-3.0-only](LICENSE) 发布**，原始 RapidOCR 源码保留 Apache-2.0 条款。PDF 依赖 PyMuPDF 使用 AGPLv3 或 Artifex 商业许可。本服务完整源码位于 [DavyDong/RapidOCR-Service](https://github.com/DavyDong/RapidOCR-Service)，网页页脚及 API 文档提供源码入口。部署修改版时，需按 AGPL 要求向服务用户提供对应版本的源码；闭源使用需选择合适的商业许可或替换 PDF 实现。
 
-发布自己的版本时，请保留第三方声明，并排除令牌、个人配置、运行日志和真实用户文档。详细来源及许可范围见 [第三方组件说明](THIRD_PARTY_NOTICES.md)。上游自动化文件保留用于追溯；本仓库暂时关闭 GitHub Actions，待工作流适配本服务后再启用。
+发布自己的版本时，请保留第三方声明，并排除令牌、个人配置、运行日志和真实用户文档。详细来源及许可范围见 [第三方组件说明](THIRD_PARTY_NOTICES.md)。上游自动化文件保存在 `docs/upstream-workflows/`，作为参考文档而非可执行工作流；本仓库暂时关闭 GitHub Actions，待工作流适配本服务后再启用。
 
 <details>
 <summary>原始 RapidOCR 库说明（保留上游介绍与归属）</summary>
